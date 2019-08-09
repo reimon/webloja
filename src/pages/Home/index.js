@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import { MdAddShoppingCart } from 'react-icons/md';
 import { ProductList } from './styles';
 
+import * as CartActions from '../../store/modules/cart/actions';
 import { formatPrice } from '../../util/format';
 
 import api from '../../services/api';
@@ -23,32 +25,29 @@ class Home extends Component {
     this.setState({ products: data });
   }
 
-  handleAddProduct = product => {
-    const { dispatch } = this.props;
-
-    dispatch({
-      type: 'ADD_TO_CART',
-      product,
-    });
+  handleAddProduct = id => {
+    const { addToCartRequest } = this.props;
+    addToCartRequest(id);
   };
 
   render() {
     const { products } = this.state;
-
+    const { amount } = this.props;
     return (
       <ProductList>
         {products.map(product => (
-          <li key={products.id}>
-            <img src={products.image} alt={products.title} />
-            <strong>{products.title}</strong>
-            <span>{products.priceFormatted}</span>
+          <li key={product.id}>
+            <img src={product.image} alt={product.title} />
+            <strong>{product.title}</strong>
+            <span>{product.priceFormatted}</span>
 
             <button
               type="button"
-              onClick={() => this.handleAddProduct(product)}
+              onClick={() => this.handleAddProduct(product.id)}
             >
               <div>
-                <MdAddShoppingCart size={16} color="#FFF" />
+                <MdAddShoppingCart size={16} color="#FFF" />{' '}
+                {amount[product.id] || 0}
               </div>
               <span>ADICINAR AO CARRINHO</span>
             </button>
@@ -58,5 +57,16 @@ class Home extends Component {
     );
   }
 }
+const mapStateToProps = state => ({
+  amount: state.cart.reduce((amount, product) => {
+    amount[product.id] = product.amount;
+    return amount;
+  }, {}),
+});
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(CartActions, dispatch);
 
-export default connect()(Home);
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Home);

@@ -1,14 +1,28 @@
 import React from 'react';
+import PropTypes from 'prop-types';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
 import {
   MdRemoveCircleOutline,
   MdAddCircleOutline,
   MdDelete,
 } from 'react-icons/md';
-import { connect } from 'react-redux';
+
+import { formatPrice } from '../../util/format';
+
+import * as CartActions from '../../store/modules/cart/actions';
 
 import { Container, ProductTable, Total } from './styles';
 
-function Cart({ cart }) {
+function Cart({ cart, total, removeFromCart, updateAmountRequest }) {
+  function increment(product) {
+    updateAmountRequest(product.id, product.amount + 1);
+  }
+
+  function decrement(product) {
+    updateAmountRequest(product.id, product.amount - 1);
+  }
+
   return (
     <Container>
       <ProductTable>
@@ -22,51 +36,77 @@ function Cart({ cart }) {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>
-              <img
-                src="https://static.netshoes.com.br/produtos/tenis-vr-caminhada-confortavel-detalhes-couro-masculino/04/E74-0413-304/E74-0413-304_detalhe2.jpg?resize=326:*"
-                alt="Tênis"
-              />
-            </td>
-            <td>
-              <strong>Tênis muito legal</strong>
-              <span>R$120,00</span>
-            </td>
-            <td>
-              <div>
-                <button type="button">
-                  <MdRemoveCircleOutline size={20} colo="#7159c1" />
+          {cart.map(product => (
+            <tr key={product.id}>
+              <td>
+                <img src={product.image} alt={product.priceFormatted} />
+              </td>
+              <td>
+                <strong>{product.title}</strong>
+                <span>{product.price}</span>
+              </td>
+              <td>
+                <div>
+                  <button type="button" onClick={() => decrement(product)}>
+                    <MdRemoveCircleOutline size={20} color="#7159c1" />
+                  </button>
+                  <input type="number" readOnly value={product.amount} />
+                  <button type="button" onClick={() => increment(product)}>
+                    <MdAddCircleOutline size={20} color="#7159c1" />
+                  </button>
+                </div>
+              </td>
+              <td>
+                <strong>{product.subtotal}</strong>
+              </td>
+              <td>
+                <button
+                  type="button"
+                  onClick={() => removeFromCart(product.id)}
+                >
+                  <MdDelete size={20} color="#7159c1" />
                 </button>
-                <input type="number" readOnly value={2} />
-                <button type="button">
-                  <MdAddCircleOutline size={20} colo="#7159c1" />
-                </button>
-              </div>
-            </td>
-            <td>
-              <strong>R$240,00</strong>
-            </td>
-            <td>
-              <button type="button">
-                <MdDelete size={20} color="#7159c1" />
-              </button>
-            </td>
-          </tr>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </ProductTable>
+
       <footer>
-        <button type="button">Finalizar Pedido</button>
+        <button type="button">Finalizar pedido</button>
+
         <Total>
           <span>TOTAL</span>
-          <strong>R$ 1920,00 </strong>
+          <strong>{total}</strong>
         </Total>
       </footer>
     </Container>
   );
 }
 
+Cart.propTypes = {
+  removeFromCart: PropTypes.func.isRequired,
+  updateAmountRequest: PropTypes.func.isRequired,
+  total: PropTypes.number.isRequired,
+  // cart: PropTypes.object,
+};
+
 const mapStateToProps = state => ({
-  cart: state.cart,
+  cart: state.cart.map(product => ({
+    ...product,
+    subtotal: formatPrice(product.price * product.amount),
+  })),
+  total: formatPrice(
+    state.cart.reduce((total, product) => {
+      return total + product.price * product.amount;
+    }, 0)
+  ),
 });
-export default connect(mapStateToProps)(Cart);
+
+const mapDispatchToProps = dispatch =>
+  bindActionCreators(CartActions, dispatch);
+
+export default connect(
+  mapStateToProps,
+  mapDispatchToProps
+)(Cart);
